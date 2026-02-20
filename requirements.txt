@@ -74,3 +74,4 @@ ultralytics-thop==2.0.18
 urllib3==2.5.0
 Werkzeug==2.3.7
 yarl==1.22.0
+gunicorn==23.0.0
