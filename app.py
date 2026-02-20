@@ -261,13 +261,10 @@ def stop_live_detection():
     except Exception as e:
         return jsonify({'success': False, 'message': f'Error stopping detection: {str(e)}'})
 
-if __name__ == '__main__':
-    # Create templates directory
-    os.makedirs('templates', exist_ok=True)
-    os.makedirs('static', exist_ok=True)
-    
+if __name__ == "__main__":
     # Load YOLO model on startup
     success, message = load_yolo_model()
     print(f"YOLO Model Status: {message}")
-    
-    app.run(debug=True, host='0.0.0.0', port=8080)
+
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
