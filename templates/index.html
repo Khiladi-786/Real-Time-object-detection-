@@ -1,629 +1,273 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real-Time Object Detection with YOLO</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-        
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-        
-        .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-        }
-        
-        .header p {
-            font-size: 1.2em;
-            opacity: 0.9;
-        }
-        
-        .main-content {
-            padding: 40px;
-        }
-        
-        .upload-section {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-        
-        .upload-area {
-            border: 3px dashed #667eea;
-            border-radius: 15px;
-            padding: 40px;
-            margin: 20px 0;
-            background: #f8f9ff;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-        
-        .upload-area:hover {
-            border-color: #764ba2;
-            background: #f0f2ff;
-        }
-        
-        .upload-area.dragover {
-            border-color: #764ba2;
-            background: #e8ebff;
-        }
-        
-        .upload-icon {
-            font-size: 4em;
-            color: #667eea;
-            margin-bottom: 20px;
-        }
-        
-        .upload-text {
-            font-size: 1.2em;
-            color: #666;
-            margin-bottom: 20px;
-        }
-        
-        .file-input {
-            display: none;
-        }
-        
-        .upload-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            border-radius: 25px;
-            font-size: 1.1em;
-            cursor: pointer;
-            transition: transform 0.2s ease;
-        }
-        
-        .upload-btn:hover {
-            transform: translateY(-2px);
-        }
-        
-        .detect-btn {
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            border-radius: 25px;
-            font-size: 1.1em;
-            cursor: pointer;
-            margin-left: 10px;
-            transition: transform 0.2s ease;
-        }
-        
-        .detect-btn:hover {
-            transform: translateY(-2px);
-        }
-        
-        .detect-btn:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        .status {
-            margin: 20px 0;
-            padding: 15px;
-            border-radius: 10px;
-            text-align: center;
-            font-weight: bold;
-        }
-        
-        .status.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        
-        .status.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        
-        .status.info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
-        
-        .results {
-            display: none;
-            margin-top: 40px;
-        }
-        
-        .image-container {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        
-        .result-image {
-            max-width: 100%;
-            max-height: 600px;
-            border-radius: 10px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-        
-        .detections {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 20px;
-            margin-top: 20px;
-        }
-        
-        .detection-item {
-            background: white;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 10px 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .detection-label {
-            font-weight: bold;
-            color: #333;
-        }
-        
-        .detection-confidence {
-            background: #667eea;
-            color: white;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 0.9em;
-        }
-        
-        .loading {
-            display: none;
-            text-align: center;
-            margin: 20px 0;
-        }
-        
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .model-status {
-            background: #e8f5e8;
-            border: 1px solid #c3e6cb;
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 30px;
-            text-align: center;
-        }
-        
-        .model-status.error {
-            background: #f8d7da;
-            border-color: #f5c6cb;
-            color: #721c24;
-        }
-        
-        .live-detection-section {
-            background: #f8f9fa;
-            border-radius: 15px;
-            padding: 30px;
-            margin: 30px 0;
-            text-align: center;
-        }
-        
-        .live-detection-section h3 {
-            color: #333;
-            margin-bottom: 20px;
-            font-size: 1.5em;
-        }
-        
-        .live-controls {
-            margin-bottom: 20px;
-        }
-        
-        .live-btn {
-            padding: 15px 30px;
-            border: none;
-            border-radius: 25px;
-            font-size: 1.1em;
-            cursor: pointer;
-            margin: 0 10px;
-            transition: all 0.3s ease;
-        }
-        
-        .start-btn {
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-            color: white;
-        }
-        
-        .start-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
-        }
-        
-        .stop-btn {
-            background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
-            color: white;
-        }
-        
-        .stop-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(220, 53, 69, 0.3);
-        }
-        
-        .live-btn:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-        
-        .live-video-container {
-            margin-top: 20px;
-            border-radius: 15px;
-            overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-        
-        .live-video-container img {
-            width: 100%;
-            max-width: 800px;
-            height: auto;
-            display: block;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YOLOv8 Real-Time Object Detection</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif;}
+
+body{
+    min-height:100vh;
+    background: linear-gradient(135deg,#4e73df,#9b59b6);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    padding:20px;
+}
+
+.container{
+    width:100%;
+    max-width:1100px;
+    background:rgba(255,255,255,0.1);
+    backdrop-filter:blur(15px);
+    border-radius:20px;
+    padding:40px;
+    box-shadow:0 25px 50px rgba(0,0,0,0.2);
+    color:white;
+}
+
+h1{
+    text-align:center;
+    font-size:2.8rem;
+    margin-bottom:10px;
+}
+
+.subtitle{
+    text-align:center;
+    opacity:0.85;
+    margin-bottom:40px;
+}
+
+.card{
+    background:rgba(255,255,255,0.15);
+    padding:30px;
+    border-radius:20px;
+    margin-bottom:30px;
+    transition:0.3s ease;
+}
+
+.card:hover{
+    transform:translateY(-5px);
+}
+
+.upload-area{
+    border:2px dashed rgba(255,255,255,0.6);
+    border-radius:15px;
+    padding:40px;
+    text-align:center;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+.upload-area:hover{
+    background:rgba(255,255,255,0.1);
+}
+
+button{
+    margin-top:20px;
+    padding:12px 30px;
+    border:none;
+    border-radius:30px;
+    font-weight:600;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+.btn-primary{
+    background:#00c9a7;
+    color:white;
+}
+
+.btn-primary:hover{
+    transform:scale(1.05);
+}
+
+.btn-detect{
+    background:#ff6b6b;
+    color:white;
+    margin-left:10px;
+}
+
+.btn-detect:disabled{
+    background:gray;
+    cursor:not-allowed;
+}
+
+.status{
+    margin-top:20px;
+    padding:15px;
+    border-radius:10px;
+    text-align:center;
+    display:none;
+}
+
+.status.success{background:#2ecc71;}
+.status.error{background:#e74c3c;}
+
+.image-preview{
+    margin-top:20px;
+    text-align:center;
+}
+
+.image-preview img{
+    max-width:250px;
+    border-radius:15px;
+}
+
+.results{
+    display:none;
+    margin-top:30px;
+}
+
+.results img{
+    width:100%;
+    border-radius:15px;
+}
+
+.detections{
+    margin-top:20px;
+}
+
+.detection-item{
+    background:rgba(0,0,0,0.3);
+    padding:10px 20px;
+    border-radius:10px;
+    margin:10px 0;
+    display:flex;
+    justify-content:space-between;
+}
+
+.loader{
+    border:4px solid rgba(255,255,255,0.2);
+    border-top:4px solid white;
+    border-radius:50%;
+    width:40px;
+    height:40px;
+    animation:spin 1s linear infinite;
+    margin:20px auto;
+    display:none;
+}
+
+@keyframes spin{
+    0%{transform:rotate(0deg);}
+    100%{transform:rotate(360deg);}
+}
+</style>
 </head>
+
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🎯 Real-Time Object Detection</h1>
-            <p>Powered by YOLOv8 - Upload an image or use live webcam detection</p>
-        </div>
-        
-        <div class="main-content">
-            <div id="modelStatus" class="model-status">
-                <div class="loading">
-                    <div class="spinner"></div>
-                    <p>Loading YOLO model...</p>
-                </div>
-            </div>
-            
-            <div class="upload-section">
-                <div class="upload-area" id="uploadArea">
-                    <div class="upload-icon">📁</div>
-                    <div class="upload-text">Drag & drop an image here or click to browse</div>
-                    <input type="file" id="fileInput" class="file-input" accept="image/*">
-                    <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
-                        Choose Image
-                    </button>
-                </div>
-                
-                <button id="detectBtn" class="detect-btn" disabled>
-                    🔍 Detect Objects
-                </button>
-            </div>
-            
-            <div class="live-detection-section">
-                <h3>📹 Live Webcam Detection</h3>
-                <div class="live-controls">
-                    <button id="startLiveBtn" class="live-btn start-btn">
-                        🎥 Start Live Detection
-                    </button>
-                    <button id="stopLiveBtn" class="live-btn stop-btn" disabled>
-                        ⏹️ Stop Detection
-                    </button>
-                </div>
-                <div id="liveVideoContainer" class="live-video-container" style="display: none;">
-                    <img id="liveVideo" src="" alt="Live Video Feed">
-                </div>
-            </div>
-            
-            <div id="status" class="status" style="display: none;"></div>
-            
-            <div id="loading" class="loading">
-                <div class="spinner"></div>
-                <p>Processing image...</p>
-            </div>
-            
-            <div id="results" class="results">
-                <div class="image-container">
-                    <img id="resultImage" class="result-image" alt="Detection Result">
-                </div>
-                
-                <div class="detections">
-                    <h3>Detected Objects:</h3>
-                    <div id="detectionList"></div>
-                </div>
-            </div>
-        </div>
+
+<div class="container">
+
+<h1>🎯 YOLOv8 Object Detection</h1>
+<p class="subtitle">Upload an image and detect objects instantly using AI</p>
+
+<div class="card">
+    <div class="upload-area" onclick="fileInput.click()">
+        <p>📁 Click or Drag & Drop Image</p>
+        <input type="file" id="fileInput" hidden accept="image/*">
+        <div class="image-preview" id="preview"></div>
     </div>
 
-    <script>
-        let selectedFile = null;
-        // If the page is opened from file://, a different host, or any port other than 8080,
-        // route API calls to the local Flask backend explicitly.
-        const shouldUseLocalApi = (
-            window.location.protocol === 'file:' ||
-            window.location.port !== '8080' ||
-            !['127.0.0.1', 'localhost'].includes(window.location.hostname)
-        );
-        const API_BASE = shouldUseLocalApi ? 'http://127.0.0.1:8080' : '';
-        
-        // Check model status on page load
-        window.onload = function() {
-            checkModelStatus();
-        };
-        
-        // Helper to safely parse JSON and surface HTML error pages clearly
-        function parseJsonSafe(response) {
-            return response.text().then(text => {
-                try {
-                    return JSON.parse(text);
-                } catch (e) {
-                    const trimmed = (text || '').trim();
-                    if (trimmed.startsWith('<')) {
-                        throw new Error(`Server returned an HTML error page (HTTP ${response.status}). Check server logs.`);
-                    }
-                    throw new Error(trimmed || `HTTP ${response.status}`);
-                }
-            });
-        }
+    <button class="btn-primary" onclick="fileInput.click()">Choose Image</button>
+    <button class="btn-detect" id="detectBtn" disabled onclick="detectObjects()">Detect Objects</button>
 
-        function checkModelStatus() {
-            fetch(API_BASE + '/status', { headers: { 'Accept': 'application/json' } })
-                .then(parseJsonSafe)
-                .then(data => {
-                    const statusDiv = document.getElementById('modelStatus');
-                    if (data.success) {
-                        statusDiv.innerHTML = `
-                            <div style="color: #28a745;">
-                                ✅ YOLO Model Loaded Successfully<br>
-                                <small>${data.classes_loaded} classes available</small>
-                            </div>
-                        `;
-                    } else {
-                        statusDiv.innerHTML = `
-                            <div style="color: #dc3545;">
-                                ❌ Model Error: ${data.message}
-                            </div>
-                        `;
-                        statusDiv.className = 'model-status error';
-                    }
-                })
-                .catch(error => {
-                    const statusDiv = document.getElementById('modelStatus');
-                    statusDiv.innerHTML = `
-                        <div style="color: #dc3545;">
-                            ❌ Failed to load model: ${error.message}
-                        </div>
-                    `;
-                    statusDiv.className = 'model-status error';
-                });
-        }
-        
-        // File upload handling
-        const uploadArea = document.getElementById('uploadArea');
-        const fileInput = document.getElementById('fileInput');
-        const detectBtn = document.getElementById('detectBtn');
-        
-        uploadArea.addEventListener('click', () => fileInput.click());
-        
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadArea.classList.add('dragover');
-        });
-        
-        uploadArea.addEventListener('dragleave', () => {
-            uploadArea.classList.remove('dragover');
-        });
-        
-        uploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadArea.classList.remove('dragover');
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                handleFileSelect(files[0]);
-            }
-        });
-        
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                handleFileSelect(e.target.files[0]);
-            }
-        });
-        
-        function handleFileSelect(file) {
-            if (!file.type.startsWith('image/')) {
-                showStatus('Please select an image file.', 'error');
-                return;
-            }
-            
-            selectedFile = file;
-            detectBtn.disabled = false;
-            
-            // Show preview
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                uploadArea.innerHTML = `
-                    <div class="upload-icon">🖼️</div>
-                    <div class="upload-text">Selected: ${file.name}</div>
-                    <img src="${e.target.result}" style="max-width: 200px; max-height: 200px; border-radius: 10px; margin: 10px 0;">
-                    <br>
-                    <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
-                        Choose Different Image
-                    </button>
-                `;
-            };
-            reader.readAsDataURL(file);
-        }
-        
-        detectBtn.addEventListener('click', detectObjects);
-        
-        // Live detection functionality
-        const startLiveBtn = document.getElementById('startLiveBtn');
-        const stopLiveBtn = document.getElementById('stopLiveBtn');
-        const liveVideoContainer = document.getElementById('liveVideoContainer');
-        const liveVideo = document.getElementById('liveVideo');
-        
-        startLiveBtn.addEventListener('click', startLiveDetection);
-        stopLiveBtn.addEventListener('click', stopLiveDetection);
-        
-        function detectObjects() {
-            if (!selectedFile) {
-                showStatus('Please select an image first.', 'error');
-                return;
-            }
-            
-            const formData = new FormData();
-            formData.append('file', selectedFile);
-            
-            showLoading(true);
-            hideStatus();
-            hideResults();
-            
-            fetch(API_BASE + '/upload', {
-                method: 'POST',
-                body: formData
-            })
-            .then(parseJsonSafe)
-            .then(data => {
-                showLoading(false);
-                if (data.success) {
-                    showResults(data.image, data.detections);
-                    showStatus(`Detection completed! Found ${data.detections.length} objects.`, 'success');
-                } else {
-                    showStatus(`Error: ${data.error}`, 'error');
-                }
-            })
-            .catch(error => {
-                showLoading(false);
-                showStatus(`Error: ${error.message}`, 'error');
+    <div class="loader" id="loader"></div>
+    <div class="status" id="status"></div>
+</div>
+
+<div class="card results" id="results">
+    <h3>Detection Results</h3>
+    <img id="resultImage">
+    <div class="detections" id="detectionList"></div>
+</div>
+
+</div>
+
+<script>
+
+const API_BASE = '';  // ✅ Works for Render + Local
+
+let selectedFile = null;
+const fileInput = document.getElementById('fileInput');
+const detectBtn = document.getElementById('detectBtn');
+
+fileInput.addEventListener('change', e=>{
+    const file = e.target.files[0];
+    if(!file || !file.type.startsWith('image/')) return;
+
+    selectedFile = file;
+    detectBtn.disabled = false;
+
+    const reader = new FileReader();
+    reader.onload = function(ev){
+        document.getElementById('preview').innerHTML =
+            `<img src="${ev.target.result}">`;
+    };
+    reader.readAsDataURL(file);
+});
+
+function showStatus(msg,type){
+    const status=document.getElementById('status');
+    status.innerText=msg;
+    status.className='status '+type;
+    status.style.display='block';
+}
+
+function detectObjects(){
+
+    if(!selectedFile){
+        showStatus("Select image first",'error');
+        return;
+    }
+
+    const formData=new FormData();
+    formData.append('file',selectedFile);
+
+    document.getElementById('loader').style.display='block';
+    document.getElementById('results').style.display='none';
+
+    fetch(API_BASE+'/upload',{
+        method:'POST',
+        body:formData
+    })
+    .then(res=>res.json())
+    .then(data=>{
+        document.getElementById('loader').style.display='none';
+
+        if(data.success){
+            showStatus("Detection Successful!",'success');
+
+            document.getElementById('resultImage').src =
+                'data:image/jpeg;base64,'+data.image;
+
+            const list=document.getElementById('detectionList');
+            list.innerHTML='';
+
+            data.detections.forEach(d=>{
+                list.innerHTML+=`
+                    <div class="detection-item">
+                        <span>${d.label}</span>
+                        <span>${(d.confidence*100).toFixed(1)}%</span>
+                    </div>`;
             });
+
+            document.getElementById('results').style.display='block';
+        }else{
+            showStatus(data.error,'error');
         }
-        
-        function showStatus(message, type) {
-            const statusDiv = document.getElementById('status');
-            statusDiv.textContent = message;
-            statusDiv.className = `status ${type}`;
-            statusDiv.style.display = 'block';
-        }
-        
-        function hideStatus() {
-            document.getElementById('status').style.display = 'none';
-        }
-        
-        function showLoading(show) {
-            document.getElementById('loading').style.display = show ? 'block' : 'none';
-        }
-        
-        function showResults(imageData, detections) {
-            const resultImage = document.getElementById('resultImage');
-            const detectionList = document.getElementById('detectionList');
-            
-            resultImage.src = 'data:image/jpeg;base64,' + imageData;
-            
-            detectionList.innerHTML = '';
-            if (detections.length === 0) {
-                detectionList.innerHTML = '<p>No objects detected.</p>';
-            } else {
-                detections.forEach((detection, index) => {
-                    const detectionItem = document.createElement('div');
-                    detectionItem.className = 'detection-item';
-                    detectionItem.innerHTML = `
-                        <div class="detection-label">${detection.label}</div>
-                        <div class="detection-confidence">${(detection.confidence * 100).toFixed(1)}%</div>
-                    `;
-                    detectionList.appendChild(detectionItem);
-                });
-            }
-            
-            document.getElementById('results').style.display = 'block';
-        }
-        
-        function hideResults() {
-            document.getElementById('results').style.display = 'none';
-        }
-        
-        function startLiveDetection() {
-            fetch(API_BASE + '/start_live_detection', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            })
-            .then(parseJsonSafe)
-            .then(data => {
-                if (data.success) {
-                    showStatus('Live detection started!', 'success');
-                    startLiveBtn.disabled = true;
-                    stopLiveBtn.disabled = false;
-                    liveVideoContainer.style.display = 'block';
-                    liveVideo.src = API_BASE + '/video_feed';
-                } else {
-                    showStatus(`Error: ${data.message}`, 'error');
-                }
-            })
-            .catch(error => {
-                showStatus(`Error: ${error.message}`, 'error');
-            });
-        }
-        
-        function stopLiveDetection() {
-            fetch(API_BASE + '/stop_live_detection', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            })
-            .then(parseJsonSafe)
-            .then(data => {
-                if (data.success) {
-                    showStatus('Live detection stopped.', 'info');
-                    startLiveBtn.disabled = false;
-                    stopLiveBtn.disabled = true;
-                    liveVideoContainer.style.display = 'none';
-                    liveVideo.src = '';
-                } else {
-                    showStatus(`Error: ${data.message}`, 'error');
-                }
-            })
-            .catch(error => {
-                showStatus(`Error: ${error.message}`, 'error');
-            });
-        }
-    </script>
+    })
+    .catch(err=>{
+        document.getElementById('loader').style.display='none';
+        showStatus("Server error: "+err.message,'error');
+    });
+}
+
+</script>
+
 </body>
 </html>
